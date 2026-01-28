@@ -1,0 +1,131 @@
+version: '3.8'
+
+services:
+  # MySQL Database
+  mysql:
+    image: mysql:8.0
+    container_name: price_tracker_mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root_password}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-price_tracker}
+      MYSQL_USER: ${MYSQL_USER:-price_user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-price_password}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - price_tracker_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  # Redis for caching and Celery broker
+  redis:
+    image: redis:7-alpine
+    container_name: price_tracker_redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - price_tracker_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # FastAPI Backend
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: price_tracker_backend
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=mysql+aiomysql://${MYSQL_USER:-price_user}:${MYSQL_PASSWORD:-price_password}@mysql:3306/${MYSQL_DATABASE:-price_tracker}
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://redis:6379/2
+    volumes:
+      - ./backend:/app
+      - playwright_browsers:/ms-playwright
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - price_tracker_network
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  # Celery Worker for async tasks (scraping, ML)
+  celery_worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: price_tracker_celery_worker
+    restart: always
+    environment:
+      - DATABASE_URL=mysql+aiomysql://${MYSQL_USER:-price_user}:${MYSQL_PASSWORD:-price_password}@mysql:3306/${MYSQL_DATABASE:-price_tracker}
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://redis:6379/2
+    volumes:
+      - ./backend:/app
+      - playwright_browsers:/ms-playwright
+    depends_on:
+      - mysql
+      - redis
+    networks:
+      - price_tracker_network
+    command: celery -A app.tasks.celery_app worker --loglevel=info
+
+  # Celery Beat for scheduled tasks
+  celery_beat:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: price_tracker_celery_beat
+    restart: always
+    environment:
+      - DATABASE_URL=mysql+aiomysql://${MYSQL_USER:-price_user}:${MYSQL_PASSWORD:-price_password}@mysql:3306/${MYSQL_DATABASE:-price_tracker}
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://redis:6379/2
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - mysql
+      - redis
+    networks:
+      - price_tracker_network
+    command: celery -A app.tasks.celery_app beat --loglevel=info
+
+  # Ollama for local AI (optional, start manually if needed)
+  # ollama:
+  #   image: ollama/ollama:latest
+  #   container_name: price_tracker_ollama
+  #   restart: always
+  #   ports:
+  #     - "11434:11434"
+  #   volumes:
+  #     - ollama_data:/root/.ollama
+  #   networks:
+  #     - price_tracker_network
+
+networks:
+  price_tracker_network:
+    driver: bridge
+
+volumes:
+  mysql_data:
+  redis_data:
+  playwright_browsers:
+  # ollama_data:

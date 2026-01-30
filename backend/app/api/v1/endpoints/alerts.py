@@ -184,11 +184,33 @@ async def test_alert(
     # Load product for notification
     await db.refresh(alert, ["product"])
     
-    # TODO: Implement actual notification sending
-    # from app.services.notifications import send_notification
-    # await send_notification(current_user, alert, alert.product, test=True)
+    # Send test notification
+    from app.services.notifications import notification_service
     
-    return {
-        "message": f"Notification test envoyée via {alert.notification_channel}",
-        "alert_id": alert_id
-    }
+    try:
+        test_result = await notification_service.test_notification(
+            channel=alert.notification_channel,
+            user_email=current_user.email,
+            telegram_chat_id=getattr(current_user, 'telegram_chat_id', None),
+            phone_number=getattr(current_user, 'phone', None)
+        )
+        
+        if test_result["success"]:
+            return {
+                "message": f"✅ {test_result['message']}",
+                "alert_id": alert_id,
+                "channel": alert.notification_channel
+            }
+        else:
+            return {
+                "message": f"⚠️ {test_result['message']}",
+                "alert_id": alert_id,
+                "channel": alert.notification_channel
+            }
+    except Exception as e:
+        return {
+            "message": f"❌ Erreur lors du test: {str(e)}",
+            "alert_id": alert_id,
+            "channel": alert.notification_channel
+        }
+

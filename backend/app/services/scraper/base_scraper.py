@@ -7,6 +7,7 @@ from typing import Optional, Dict, Any, List
 from abc import ABC, abstractmethod
 from playwright.async_api import async_playwright, Browser, Page
 import logging
+import re
 
 from app.core.config import settings
 
@@ -47,16 +48,16 @@ class BaseScraper(ABC):
                     '--disable-blink-features=AutomationControlled'
                 ]
             )
-            logger.info("✅ Browser initialized successfully")
+            logger.info(" Browser initialized successfully")
         except Exception as e:
-            logger.error(f"❌ Failed to initialize browser: {e}")
+            logger.error(f" Failed to initialize browser: {e}")
             raise
     
     async def close_browser(self):
         """Close browser"""
         if self.browser:
             await self.browser.close()
-            logger.info("🔒 Browser closed")
+            logger.info(" Browser closed")
         if self.playwright:
             await self.playwright.stop()
     
@@ -102,11 +103,11 @@ class BaseScraper(ABC):
                 await page.close()
                 
         except Exception as e:
-            logger.error(f"❌ Scraping failed for {url}: {e}")
+            logger.error(f" Scraping failed for {url}: {e}")
             
             # Retry logic
             if retry_count < self.max_retries:
-                logger.info(f"🔄 Retrying... (Attempt {retry_count + 1}/{self.max_retries})")
+                logger.info(f" Retrying... (Attempt {retry_count + 1}/{self.max_retries})")
                 await asyncio.sleep(random.uniform(3, 7))  # Random delay before retry
                 return await self.safe_scrape(url, retry_count + 1)
             
@@ -139,15 +140,54 @@ class BaseScraper(ABC):
         Example: "245,000 XOF" -> 245000.0
         """
         try:
-            # Remove currency symbols and spaces
-            cleaned = price_str.replace('XOF', '').replace('FCFA', '').replace('CFA', '')
-            cleaned = cleaned.replace(' ', '').replace(',', '').replace('.', '')
-            cleaned = cleaned.strip()
-            
-            # Convert to float (assuming last 3 digits are decimals if present)
-            if cleaned:
-                return float(cleaned)
-            return None
+            s = (price_str or "").strip()
+            if not s:
+                return None
+            # Normalize spaces and remove common currency tokens
+            s = s.replace("\u202f", " ").replace("\xa0", " ")
+            s = re.sub(r"(?i)(xof|fcfa|cfa|mad|dhs|dh|usd|eur|€|$|fcfa)", "", s)
+            s = s.strip()
+
+            # Keep digits and separators only
+            allowed = re.findall(r"[0-9]+|[\.,]", s)
+            if not allowed:
+                return None
+            s2 = "".join(allowed)
+
+            # If both separators present, the rightmost is decimal separator
+            if "," in s2 and "." in s2:
+                last_comma = s2.rfind(",")
+                last_dot = s2.rfind(".")
+                if last_comma > last_dot:
+                    # comma decimal, dot thousands
+                    num = s2.replace(".", "").replace(",", ".")
+                else:
+                    # dot decimal, comma thousands
+                    num = s2.replace(",", "")
+                return float(num)
+
+            # Only comma present
+            if "," in s2:
+                parts = s2.split(",")
+                # If last group length is 2, assume decimal
+                if len(parts[-1]) == 2:
+                    num = "".join(parts[:-1]).replace(".", "") + "." + parts[-1]
+                else:
+                    # Treat commas as thousands separators
+                    num = s2.replace(",", "")
+                return float(num)
+
+            # Only dot present
+            if "." in s2:
+                parts = s2.split(".")
+                if len(parts[-1]) == 2:
+                    num = "".join(parts[:-1]).replace(",", "") + "." + parts[-1]
+                else:
+                    num = s2.replace(".", "")
+                return float(num)
+
+            # Digits only
+            return float(s2)
         except Exception as e:
             logger.error(f"❌ Failed to clean price '{price_str}': {e}")
             return None

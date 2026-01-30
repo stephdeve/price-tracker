@@ -4,6 +4,12 @@ Application configuration using Pydantic Settings
 from pydantic_settings import BaseSettings
 from typing import List
 import os
+from pathlib import Path
+from dotenv import load_dotenv
+
+# Load .env file from the root directory (two levels up from app/)
+env_file = Path(__file__).parent.parent.parent.parent / ".env"
+load_dotenv(env_file)
 
 
 class Settings(BaseSettings):
@@ -15,7 +21,7 @@ class Settings(BaseSettings):
     DEBUG: bool = True
     
     # Database
-    DATABASE_URL: str = "mysql+aiomysql://price_user:price_password@localhost:3306/price_tracker"
+    DATABASE_URL: str = "mysql+aiomysql://root:@localhost:3306/price_tracker"
     
     # Redis
     REDIS_URL: str = "redis://localhost:6379/0"
@@ -71,6 +77,7 @@ class Settings(BaseSettings):
         env_file = ".env"
         case_sensitive = True
         extra = "ignore"
+        env_file_encoding = "utf-8"
 
 
 # Global settings instance

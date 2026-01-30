@@ -1,11 +1,22 @@
 """
 FastAPI main application
 """
+import sys
+import asyncio
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
 from app.core.config import settings, ALLOWED_ORIGINS
+# Import all models to register them with SQLAlchemy
+from app.models import (
+    User,
+    Alert,
+    PriceHistory,
+    Product,
+    Subscription,
+    TrackedProduct,
+)
 
 
 @asynccontextmanager
@@ -25,6 +36,15 @@ async def lifespan(app: FastAPI):
 
 
 # Create FastAPI app
+# Ensure proper asyncio event loop policy on Windows for subprocess (Playwright)
+# WindowsSelectorEventLoopPolicy is required for asyncio subprocess on Windows in some environments
+if sys.platform.startswith("win"):
+    try:
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+    except Exception:
+        # Fallback silently; uvicorn may already have initialized the loop
+        pass
+
 app = FastAPI(
     title=settings.APP_NAME,
     version=settings.APP_VERSION,

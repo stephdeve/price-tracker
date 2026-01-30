@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { useAuthStore } from '../store/authStore';
 import {
     ChartBarIcon,
     BellIcon,
@@ -7,6 +8,7 @@ import {
 } from '@heroicons/react/24/outline';
 
 export default function HomePage() {
+    const { isAuthenticated } = useAuthStore();
     return (
         <div>
             {/* Hero Section */}
@@ -21,12 +23,25 @@ export default function HomePage() {
                             Reçois des alertes intelligentes et achète au meilleur moment grâce à l'IA.
                         </p>
                         <div className="flex justify-center space-x-4">
-                            <Link to="/register" className="btn-primary text-lg px-8 py-3">
-                                Commencer Gratuitement
-                            </Link>
-                            <Link to="/pricing" className="btn-outline text-lg px-8 py-3">
-                                Voir les Tarifs
-                            </Link>
+                            {isAuthenticated ? (
+                                <>
+                                    <Link to="/dashboard" className="btn-primary text-lg px-8 py-3">
+                                        Accéder au Dashboard
+                                    </Link>
+                                    <Link to="/pricing" className="btn-outline text-lg px-8 py-3">
+                                        Voir les Tarifs
+                                    </Link>
+                                </>
+                            ) : (
+                                <>
+                                    <Link to="/register" className="btn-primary text-lg px-8 py-3">
+                                        Commencer Gratuitement
+                                    </Link>
+                                    <Link to="/pricing" className="btn-outline text-lg px-8 py-3">
+                                        Voir les Tarifs
+                                    </Link>
+                                </>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -92,9 +107,15 @@ export default function HomePage() {
                     <p className="text-xl mb-8 opacity-90">
                         Rejoins des milliers de Béninois qui économisent avec Price Tracker
                     </p>
-                    <Link to="/register" className="bg-white text-primary-500 hover:bg-gray-100 font-bold py-3 px-8 rounded-lg text-lg">
-                        Créer mon compte gratuit
-                    </Link>
+                    {isAuthenticated ? (
+                        <Link to="/dashboard" className="bg-white text-primary-500 hover:bg-gray-100 font-bold py-3 px-8 rounded-lg text-lg">
+                            Accéder à mon Dashboard
+                        </Link>
+                    ) : (
+                        <Link to="/register" className="bg-white text-primary-500 hover:bg-gray-100 font-bold py-3 px-8 rounded-lg text-lg">
+                            Créer mon compte gratuit
+                        </Link>
+                    )}
                 </div>
             </section>
         </div>

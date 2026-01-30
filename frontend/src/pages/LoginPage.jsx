@@ -1,4 +1,4 @@
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -13,6 +13,7 @@ const loginSchema = z.object({
 export default function LoginPage() {
     const navigate = useNavigate();
     const { login, isAuthenticated } = useAuthStore();
+    const [searchParams] = useSearchParams();
 
     const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm({
         resolver: zodResolver(loginSchema),
@@ -20,14 +21,18 @@ export default function LoginPage() {
 
     useEffect(() => {
         if (isAuthenticated) {
-            navigate('/dashboard');
+            const next = searchParams.get('next');
+            const dest = next ? decodeURIComponent(next) : '/dashboard';
+            navigate(dest, { replace: true });
         }
-    }, [isAuthenticated, navigate]);
+    }, [isAuthenticated, navigate, searchParams]);
 
     const onSubmit = async (data) => {
         const success = await login(data.email, data.password);
         if (success) {
-            navigate('/dashboard');
+            const next = searchParams.get('next');
+            const dest = next ? decodeURIComponent(next) : '/dashboard';
+            navigate(dest, { replace: true });
         }
     };
 

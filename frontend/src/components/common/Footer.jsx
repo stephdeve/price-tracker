@@ -46,7 +46,7 @@ export default function Footer() {
                 </div>
 
                 <div className="border-t border-gray-800 mt-8 pt-8 text-sm text-center">
-                    <p>&copy; 2026 Price Tracker Bénin. Fait avec ❤️ au Bénin 🇧🇯</p>
+                    <p>&copy; 2026 Price Tracker Bénin. Fait avec heart au Bénin 🇧🇯</p>
                 </div>
             </div>
         </footer>

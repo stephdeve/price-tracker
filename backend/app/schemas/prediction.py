@@ -16,6 +16,20 @@ class PriceHistoryResponse(BaseModel):
         from_attributes = True
 
 
+class PriceDropItem(BaseModel):
+    product_id: str
+    name: str
+    marketplace: str
+    current_price: float
+    currency: str
+    drop_pct: float
+    previous_mean: Optional[float] = None
+    previous_std: Optional[float] = None
+    last_change_at: Optional[datetime] = None
+    url: Optional[str] = None
+    image_url: Optional[str] = None
+
+
 class PriceHistoryStats(BaseModel):
     """Statistics from price history"""
     current_price: float

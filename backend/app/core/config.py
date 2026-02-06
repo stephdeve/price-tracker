@@ -83,6 +83,10 @@ class Settings(BaseSettings):
 # Global settings instance
 settings = Settings()
 
-# CORS - Parse from env or use defaults
-_allowed_origins_str = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:3000")
-ALLOWED_ORIGINS: List[str] = [item.strip() for item in _allowed_origins_str.split(",")]
+# CORS - Parse from env at module load time
+def get_allowed_origins() -> List[str]:
+    """Get ALLOWED_ORIGINS from environment variable"""
+    _allowed_origins_str = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:3000")
+    return [item.strip() for item in _allowed_origins_str.split(",")]
+
+ALLOWED_ORIGINS: List[str] = get_allowed_origins()

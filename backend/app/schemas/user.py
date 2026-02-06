@@ -56,17 +56,18 @@ class UserLogin(BaseModel):
 
 # Response schemas
 class UserResponse(BaseModel):
-    id: str
+    id: int
     email: str
-    full_name: str
-    phone: str
+    full_name: Optional[str] = None
+    phone: Optional[str] = None
     is_active: bool
     is_premium: bool
+    is_verified: bool
     premium_expires_at: Optional[datetime] = None
-    preferred_notification: NotificationChannel
-    telegram_id: Optional[str] = None
-    whatsapp_number: Optional[str] = None
+    preferred_notification_channel: NotificationChannel
+    telegram_user_id: Optional[str] = None
     created_at: datetime
+    updated_at: Optional[datetime] = None
     
     class Config:
         from_attributes = True

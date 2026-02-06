@@ -262,13 +262,13 @@ async def _fetch_html(url: str, headers: Dict[str, str]) -> Optional[str]:
 
 def _extract_meta(content: str, name: str) -> Optional[str]:
     # property or name attribute
-    m = re.search(rf'<meta[^>]+(?:property|name)=["\\\\']{name}["\"][^>]+content=["\\\\']([^"\"]+)["\"][^>]*>', content, re.IGNORECASE)
+    m = re.search(rf'<meta[^>]+(?:property|name)=["\']{name}["\'][^>]+content=["\'"]([^"\']+)["\'][^>]*>', content, re.IGNORECASE)
     return m.group(1).strip() if m else None
 
 
 def _extract_price_from_jsonld(content: str) -> tuple[Optional[str], Optional[str]]:
     # Find JSON-LD blocks
-    for script in re.findall(r'<script[^>]+type=["\\\\']application/ld\+json["\"][^>]*>(.*?)</script>', content, re.IGNORECASE | re.DOTALL):
+    for script in re.findall(r'<script[^>]+type=["\'"]application/ld\+json["\'][^>]*>(.*?)</script>', content, re.IGNORECASE | re.DOTALL):
         try:
             data = json.loads(script)
             # data may be list or dict
@@ -314,7 +314,7 @@ async def simple_scrape_jumia(url: str) -> Optional[Dict[str, Any]]:
     price_str, curr = _extract_price_from_jsonld(html)
     # Fallback: look for class="prc">...<
     if not price_str:
-        m = re.search(r'class=["\\\\']prc[^"\"]*["\"][^>]*>([^<]+)<', html, re.IGNORECASE)
+        m = re.search(r'class=["\'"]prc[^"\']*["\'][^>]*>([^<]+)<', html, re.IGNORECASE)
         if m:
             price_str = m.group(1)
 

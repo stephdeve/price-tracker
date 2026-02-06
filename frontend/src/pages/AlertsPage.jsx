@@ -88,9 +88,9 @@ export default function AlertsPage() {
         setTestingAlertId(alertId);
         try {
             const result = await testAlert(alertId);
-            alert('✅ Notification de test envoyée!\n' + result.message);
+            alert('Notification de test envoyée!\n' + result.message);
         } catch (error) {
-            alert('❌ Échec du test: ' + error.message);
+            alert(' Échec du test: ' + error.message);
         } finally {
             setTestingAlertId(null);
         }
@@ -243,9 +243,9 @@ export default function AlertsPage() {
                                 <div className="flex-1">
                                     <div className="flex items-center gap-3 mb-2">
                                         <h3 className="font-bold text-lg">
-                                            {alert.alert_type === 'target_price' && '🎯 Prix Cible'}
-                                            {alert.alert_type === 'percentage_drop' && '📉 Baisse %'}
-                                            {alert.alert_type === 'availability' && '✅ Disponibilité'}
+                                            {alert.alert_type === 'target_price' && ' Prix Cible'}
+                                            {alert.alert_type === 'percentage_drop' && ' Baisse %'}
+                                            {alert.alert_type === 'availability' && ' Disponibilité'}
                                         </h3>
                                         <span className={`badge ${alert.is_active ? 'badge-success' : 'bg-gray-200 text-gray-700'}`}>
                                             {alert.is_active ? 'Active' : 'Inactive'}

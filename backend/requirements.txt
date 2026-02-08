@@ -31,13 +31,14 @@ playwright==1.41.0
 beautifulsoup4==4.12.3
 lxml==5.1.0
 
-# Machine Learning
+# Machine Learning (lightweight, no CUDA)
 prophet==1.1.5
 scikit-learn==1.4.0
 pandas==2.2.0
 numpy==1.26.3
-sentence-transformers==2.2.2  # For semantic product matching
+# sentence-transformers==2.2.2  # Removed: too heavy (requires CUDA ~700MB)
 python-Levenshtein==0.23.0  # For fuzzy string matching
+fuzzywuzzy==0.18.0  # Alternative fuzzy matching
 
 # HTTP Clients
 httpx==0.25.2  # Compatible with python-telegram-bot

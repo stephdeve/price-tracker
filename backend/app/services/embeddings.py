@@ -17,42 +17,44 @@ except Exception:  # ImportError or other runtime failures
     _HAS_ST = False
 
 
-class EmbeddingService:
-    def __init__(self) -> None:
-        self.model: Optional[SentenceTransformer] = None
-        if _HAS_ST:
-            try:
-                # light, fast, widely available
-                self.model = SentenceTransformer("all-MiniLM-L6-v2")
-            except Exception:
-                self.model = None
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+import numpy as np
 
-    @property
-    def available(self) -> bool:
-        return self.model is not None and _HAS_ST
 
-    @lru_cache(maxsize=2048)
-    def embed(self, text: str):
-        if not self.available:
+class EmbeddingsService:
+    """
+    Lightweight text similarity using TF-IDF
+    (Alternative to sentence-transformers to avoid CUDA dependencies)
+    """
+    
+    def __init__(self):
+        self.vectorizer = TfidfVectorizer(
+            max_features=1000,
+            ngram_range=(1, 2),
+            stop_words='english'
+        )
+        self._is_fitted = False
+    
+    def similarity(self, text_a: str, text_b: str) -> Optional[float]:
+        """
+        Calculate cosine similarity between two texts using TF-IDF
+        Returns: float between 0 and 1, or None if error
+        """
+        if not text_a or not text_b:
             return None
-        return self.model.encode(text, normalize_embeddings=True)
-
-    def similarity(self, a: str, b: str) -> Optional[float]:
-        if not self.available:
+        
+        try:
+            # Fit and transform both texts
+            vectors = self.vectorizer.fit_transform([text_a, text_b])
+            
+            # Calculate cosine similarity
+            similarity_matrix = cosine_similarity(vectors[0:1], vectors[1:2])
+            
+            return float(similarity_matrix[0][0])
+        except Exception:
             return None
-        ea = self.embed(a)
-        eb = self.embed(b)
-        if ea is None or eb is None:
-            return None
-        # cosine since normalized
-        sim = float((ea * eb).sum())
-        # clamp to [0,1]
-        if sim < 0:
-            sim = 0.0
-        elif sim > 1:
-            sim = 1.0
-        return sim
 
 
-# singleton instance
-embeddings = EmbeddingService()
+# Global instance
+embeddings = EmbeddingsService()

@@ -1,0 +1,50 @@
+global:
+  scrape_interval: 15s  # Collecte métriques toutes les 15s
+  evaluation_interval: 15s  # Évalue règles d'alerte toutes les 15s
+  external_labels:
+    cluster: 'price_tracker'
+    environment: 'development'
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - alertmanager:9093
+
+# Règles d'alerte
+rule_files:
+  - '/etc/prometheus/alerts/*.yml'
+
+# Targets à scraper
+scrape_configs:
+  # FastAPI Backend
+  - job_name: 'fastapi'
+    static_configs:
+      - targets: ['backend:8000']
+    metrics_path: '/metrics'
+
+  # MySQL métriques
+  - job_name: 'mysql'
+    static_configs:
+      - targets: ['mysql_exporter:9104']
+
+  # Redis métriques
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis_exporter:9121']
+
+  # Métriques système (CPU, RAM, Disk)
+  - job_name: 'node_exporter'
+    static_configs:
+      - targets: ['node_exporter:9100']
+
+  # Métriques conteneurs Docker
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']
+
+  # Prometheus lui-même
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']

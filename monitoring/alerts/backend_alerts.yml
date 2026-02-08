@@ -1,0 +1,102 @@
+groups:
+  - name: backend_alerts
+    interval: 30s
+    rules:
+      # Backend est down
+      - alert: BackendDown
+        expr: up{job="fastapi"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: backend
+        annotations:
+          summary: "Backend FastAPI est DOWN"
+          description: "Le backend n'a pas répondu depuis {{ $value }}s"
+
+      # Trop de requêtes en erreur (>5%)
+      - alert: HighErrorRate
+        expr: (rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m])) > 0.05
+        for: 3m
+        labels:
+          severity: warning
+          service: backend
+        annotations:
+          summary: "Taux d'erreur élevé (>5%)"
+          description: "{{ $value | humanizePercentage }} des requêtes retournent 5xx"
+
+      # Latence API trop élevée (>2s)
+      - alert: HighLatency
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 2
+        for: 5m
+        labels:
+          severity: warning
+          service: backend
+        annotations:
+          summary: "Latence API élevée"
+          description: "P95 latency = {{ $value }}s (>2s)"
+
+      # MySQL connexion échouée
+      - alert: MySQLDown
+        expr: mysql_up == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: database
+        annotations:
+          summary: "MySQL est DOWN"
+          description: "Impossible de se connecter à MySQL"
+
+      # Redis connexion échouée
+      - alert: RedisDown
+        expr: redis_up == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: cache
+        annotations:
+          summary: "Redis est DOWN"
+          description: "Impossible de se connecter à Redis"
+
+      # Disque presque plein (>85%)
+      - alert: DiskSpaceLow
+        expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) < 0.15
+        for: 5m
+        labels:
+          severity: warning
+          service: system
+        annotations:
+          summary: "Espace disque faible (<15%)"
+          description: "Il reste seulement {{ $value | humanizePercentage }} d'espace disque"
+
+      # Mémoire élevée (>90%)
+      - alert: HighMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          service: system
+        annotations:
+          summary: "Utilisation mémoire élevée (>90%)"
+          description: "Mémoire utilisée: {{ $value | humanizePercentage }}"
+
+      # Celery worker down
+      - alert: CeleryWorkerDown
+        expr: absent(celery_worker_up{worker=~".*"})
+        for: 2m
+        labels:
+          severity: critical
+          service: worker
+        annotations:
+          summary: "Aucun worker Celery actif"
+          description: "Les tâches asynchrones ne sont plus traitées"
+
+      # Trop de tâches en échec Celery
+      - alert: HighCeleryFailureRate
+        expr: (rate(celery_task_failed_total[5m]) / rate(celery_task_sent_total[5m])) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          service: worker
+        annotations:
+          summary: "Taux d'échec Celery élevé (>10%)"
+          description: "{{ $value | humanizePercentage }} des tâches échouent"

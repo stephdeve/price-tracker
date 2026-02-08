@@ -1,313 +1,293 @@
-# Price Tracker Bénin 🇧🇯
+# 🚀 Price Tracker - Guide de Démarrage
 
-Application intelligente de suivi de prix pour le marché béninois. Utilise l'IA pour prédire les baisses de prix et fournir des conseils d'achat personnalisés.
+## 📦 Services Disponibles
+
+Le projet inclut maintenant **15 services Docker** :
+
+### Core Services
+- **MySQL** - Base de données (port 3306)
+- **Redis** - Cache & Celery broker (port 6379)
+- **Backend** - API FastAPI (port 8000)
+- **Celery Worker** - Traitement async
+- **Celery Beat** - Planification
+- **Frontend** - React app (port 5173)
+
+### Monitoring Stack 📊
+- **Prometheus** - Collecte métriques (port 9090)
+- **Grafana** - Visualisation (port 3001)
+- **Loki** - Agrégation logs (port 3100)
+- **Promtail** - Collecteur logs
+- **AlertManager** - Gestion alertes (port 9093)
+- **Uptime Kuma** - Monitoring uptime (port 3002)
+
+### Exporters
+- **Node Exporter** - Métriques système (port 9100)
+- **MySQL Exporter** - Métriques MySQL (port 9104)
+- **Redis Exporter** - Métriques Redis (port 9121)
+- **cAdvisor** - Métriques conteneurs (port 8080)
+
+### Optional
+- **Ollama** - IA locale (port 11434)
 
 ---
 
-## Table des matières
+## 🚀 Démarrage Rapide
 
-- [Stack technique](#stack-technique)
-- [Fonctionnalités](#fonctionnalités)
-- [Installation](#installation)
-  - [Prérequis](#prérequis)
-  - [Cloner le projet](#cloner-le-projet)
-  - [Configuration de l'environnement](#configuration-de-lenvironnement)
-  - [Démarrer avec Docker](#démarrer-avec-docker)
-  - [Migrations de la base de données](#migrations-de-la-base-de-données)
-  - [Installer Ollama (IA locale)](#installer-ollama-ia-locale)
-- [Test du scraping](#test-du-scraping)
-- [Structure du projet](#structure-du-projet)
-- [Développement](#développement)
-  - [Créer un endpoint](#créer-un-endpoint)
-  - [Lancer les tests](#lancer-les-tests)
-- [Configuration Celery](#configuration-celery)
-- [Intégrations](#intégrations)
-  - [KKiapay (paiement)](#kkiapay-paiement)
-  - [Telegram Bot](#telegram-bot)
-- [Déploiement](#déploiement)
-- [To‑Do](#to-do)
-- [Contribution](#contribution)
-- [Licence](#licence)
-- [Auteur](#auteur)
+### 1. Configuration
+
+```bash
+cd /home/steven/dev/price-tracker
+cp .env.example .env
+```
+
+**Éditer `.env` et configurer:**
+```bash
+# Base de données
+MYSQL_ROOT_PASSWORD=root_password
+MYSQL_DATABASE=price_tracker
+MYSQL_USER=price_user
+MYSQL_PASSWORD=price_password
+
+# Grafana
+GRAFANA_USER=admin
+GRAFANA_PASSWORD=admin123
+
+# Alertes (optionnel)
+TELEGRAM_BOT_TOKEN=your_bot_token
+TELEGRAM_CHAT_ID=your_chat_id
+ALERT_EMAIL=your_email@example.com
+SMTP_USERNAME=your_smtp_username
+SMTP_PASSWORD=your_smtp_password
+```
+
+### 2. Démarrer TOUS les services
+
+```bash
+docker-compose up -d
+```
+
+### 3. Démarrer SEULEMENT les services essentiels
+
+```bash
+# Sans monitoring
+docker-compose up -d mysql redis backend celery_worker celery_beat frontend
+```
+
+### 4. Initialiser la base de données
+
+```bash
+docker-compose exec backend alembic upgrade head
+```
 
 ---
 
-## Stack technique
+## 🌐 Accès aux Services
+
+| Service | URL | Credentials |
+|---------|-----|-------------|
+| **Frontend** | http://localhost:5173 | - |
+| **API** | http://localhost:8000 | - |
+| **API Docs** | http://localhost:8000/docs | - |
+| **Grafana** | http://localhost:3001 | admin / admin123 |
+| **Prometheus** | http://localhost:9090 | - |
+| **AlertManager** | http://localhost:9093 | - |
+| **Uptime Kuma** | http://localhost:3002 | Setup on first visit |
+| **cAdvisor** | http://localhost:8080 | - |
+
+---
+
+## 📊 Configuration Monitoring
+
+### Grafana Dashboards
+
+1. **Accéder à Grafana**: http://localhost:3001
+2. **Login**: admin / admin123
+3. **Datasources déjà configurées**:
+   - Prometheus (métriques)
+   - Loki (logs)
+   - MySQL (données)
+   - Redis
+
+### Alertes Telegram
+
+1. **Créer un bot Telegram**:
+   - Parler à @BotFather
+   - `/newbot` et suivre les instructions
+   - Copier le token
+
+2. **Obtenir votre Chat ID**:
+   - Parler à @userinfobot
+   - Copier votre ID
+
+3. **Configurer dans `.env`**:
+   ```bash
+   TELEGRAM_BOT_TOKEN=123456789:ABCdefGHIjklMNOpqrsTUVwxyz
+   TELEGRAM_CHAT_ID=123456789
+   ```
+
+4. **Rebuild AlertManager**:
+   ```bash
+   docker-compose up -d alertmanager
+   ```
+
+### Types d'Alertes
+
+- 🚨 **Critical**: Backend down, MySQL down, Redis down
+- ⚠️ **Warning**: Erreurs >5%, Latence >2s, Disque <15%, RAM >90%
+- 📊 **Info**: Métriques Celery, tâches en échec
+
+---
+
+## 🧪 Tests
+
+### Test Scrapers
+
+```bash
+# AliExpress
+docker-compose exec backend python test_aliexpress.py
+
+# Jumia
+docker-compose exec backend python test_scraper.py
+```
+
+### Test API
+
+```bash
+# Health check
+curl http://localhost:8000/health
+
+# Métriques Prometheus
+curl http://localhost:8000/metrics
+```
+
+---
+
+## 📈 Métriques Disponibles
 
 ### Backend
-- Framework : FastAPI (Python 3.11+)
-- Base de données : MySQL 8.0
-- ORM : SQLAlchemy 2.0 (async)
-- Migrations : Alembic
-- Cache : Redis
-- Tâches asynchrones : Celery + Redis
-- ML / Prédictions : Prophet (Meta), Scikit-learn
-- Scraping : Playwright
-- IA : Ollama (llama3.2 local - gratuit)
-- Authentification : JWT
-- Validation : Pydantic v2
+- `http_requests_total` - Total requêtes HTTP
+- `http_request_duration_seconds` - Latence requêtes
+- `scraping_requests_total` - Requêtes scraping
+- `products_scraped_total` - Produits scrapés
+- `price_alerts_sent_total` - Alertes envoyées
 
-### Frontend
-- Framework : React 18 + Vite
-- State management : Zustand
-- UI : Tailwind CSS + Headless UI
-- Requêtes API : TanStack Query (React Query)
-- Forms : React Hook Form + Zod
-- Charts : Recharts
+### Système
+- `node_cpu_seconds_total` - CPU usage
+- `node_memory_MemAvailable_bytes` - RAM disponible
+- `node_filesystem_avail_bytes` - Disque disponible
 
-### Intégrations
-- Paiement : KKiapay (Mobile Money MTN / Moov Bénin)
-- Notifications : Telegram Bot API, WhatsApp (Twilio)
-- Données économiques : API BCEAO
+### MySQL
+- `mysql_up` - Status MySQL
+- `mysql_global_status_connections` - Connexions
+- `mysql_global_status_queries` - Requêtes
+
+### Redis
+- `redis_up` - Status Redis
+- `redis_connected_clients` - Clients connectés
+- `redis_memory_used_bytes` - Mémoire utilisée
 
 ---
 
-## Fonctionnalités
+## 🛠️ Commandes Utiles
 
-### Gratuit (Free Tier)
-- Suivi de 5 produits maximum
-- Historique de prix : 30 jours
-- Prédictions basiques : 7 jours
-- Alertes par email uniquement
-
-### Premium (1000 XOF / mois ≈ 1.5 EUR)
-- Produits trackés illimités
-- Historique complet (1 an)
-- Prédictions avancées : 30 jours
-- Conseils d'achat IA
-- Alertes Telegram + WhatsApp
-
----
-
-## Installation
-
-### Prérequis
-- Docker & Docker Compose
-- Python 3.11+
-- Node.js 18+
-- Git
-
-### 1. Cloner le projet
+### Logs
 ```bash
-git clone https://github.com/stephdeve/price-tracker.git
-cd price-tracker
-```
+# Tous les services
+docker-compose logs -f
 
-### 2. Configuration de l'environnement
-```bash
-# Copier le fichier d'exemple
-cp .env.example .env
-
-# Éditer .env avec vos valeurs
-# Ex : nano .env
-```
-
-Remplissez les variables essentielles dans `.env` (DB, Redis, clés externes, etc.).
-
-### 3. Démarrer avec Docker
-```bash
-# Construire et démarrer tous les services en arrière-plan
-docker-compose up -d --build
-
-# Suivre les logs du backend
+# Service spécifique
 docker-compose logs -f backend
+docker-compose logs -f celery_worker
+docker-compose logs -f prometheus
 ```
 
-Services accessibles localement :
-- Backend API : http://localhost:8000
-- Swagger UI : http://localhost:8000/docs
-- Frontend : http://localhost:5173 (après setup frontend)
-- MySQL : localhost:3306
-- Redis : localhost:6379
-
-### 4. Créer et appliquer les migrations
+### Restart
 ```bash
-# Entrer dans le container backend
-docker-compose exec backend bash
+# Tout redémarrer
+docker-compose restart
 
-# Créer la première migration
-alembic revision --autogenerate -m "Initial migration"
-
-# Appliquer les migrations
-alembic upgrade head
+# Service spécifique
+docker-compose restart backend
 ```
 
-### 5. Installer Ollama (IA locale - optionnel mais recommandé)
-Sur votre machine hôte :
+### Stop
 ```bash
-# Télécharger et installer : https://ollama.ai
-# Ensuite, récupérer le modèle
-ollama pull llama3.2
+# Arrêter tout
+docker-compose down
 
-# Vérifier que Ollama est accessible
-# ex: http://localhost:11434
+# Arrêter et supprimer volumes
+docker-compose down -v
 ```
 
----
-
-## Test du scraping
-
-Exemple pour tester le scraper Jumia depuis le container backend :
+### Rebuild
 ```bash
-docker-compose exec backend bash -lc "python - <<'PY'
-import asyncio
-from app.services.scraper.jumia_scraper import JumiaScraper
-
-async def test():
-    async with JumiaScraper() as scraper:
-        url = 'https://www.jumia.com.bj/...'
-        data = await scraper.scrape_product(url)
-        print(data)
-
-asyncio.run(test())
-PY"
+# Rebuild après changement de code
+docker-compose up -d --build backend celery_worker celery_beat
 ```
 
 ---
 
-## Structure du projet
+## 🎯 Fonctionnalités
 
-```
-price-tracker/
-├── backend/
-│   ├── app/
-│   │   ├── api/               # Endpoints FastAPI
-│   │   ├── core/              # Config, sécurité
-│   │   ├── models/            # SQLAlchemy models
-│   │   ├── schemas/           # Pydantic schemas
-│   │   ├── services/          # Business logic
-│   │   │   ├── scraper/       # Jumia, Amazon scrapers
-│   │   │   ├── ml/            # Prophet predictions
-│   │   │   ├── ai/            # Ollama advice
-│   │   │   ├── notifications/ # Telegram, WhatsApp
-│   │   │   └── payment/       # KKiapay integration
-│   │   ├── tasks/             # Celery tasks
-│   │   └── main.py
-│   ├── alembic/               # DB migrations
-│   ├── tests/
-│   ├── Dockerfile
-│   └── requirements.txt
-├── frontend/                  # React app
-├── docker-compose.yml
-└── .env.example
-```
+✅ **Multi-source scraping** - Jumia, Amazon, AliExpress  
+✅ **Product matching** - 3 stages (exact, fuzzy, semantic)  
+✅ **Price tracking** - Historique complet  
+✅ **Alertes** - Telegram, Email, WhatsApp  
+✅ **Monitoring complet** - Prometheus + Grafana  
+✅ **Logs centralisés** - Loki + Promtail  
+✅ **Alerting** - AlertManager avec notifications  
+✅ **Uptime monitoring** - Uptime Kuma  
+✅ **IA locale** - Ollama (optionnel)  
 
 ---
 
-## Développement
+## 📝 Documentation
 
-### Créer un nouvel endpoint (exemple)
-```python
-# backend/app/api/v1/endpoints/example.py
-from fastapi import APIRouter
+- [INTEGRATION.md](backend/INTEGRATION.md) - Guide d'intégration
+- [Walkthrough](/.gemini/antigravity/brain/c1596428-440e-4581-a2b9-94029475e888/walkthrough.md) - Documentation complète
 
-router = APIRouter()
+---
 
-@router.get("/example")
-async def example():
-    return {"message": "Hello"}
-```
+## 🐛 Dépannage
 
-### Lancer les tests
+### Prometheus ne collecte pas de métriques
+
 ```bash
-docker-compose exec backend pytest
+# Vérifier que le backend expose /metrics
+curl http://localhost:8000/metrics
+
+# Vérifier la config Prometheus
+docker-compose exec prometheus cat /etc/prometheus/prometheus.yml
+
+# Restart Prometheus
+docker-compose restart prometheus
 ```
 
-### Accéder au shell backend
+### Grafana ne se connecte pas aux datasources
+
 ```bash
-docker-compose exec backend bash
+# Vérifier les datasources
+docker-compose exec grafana cat /etc/grafana/provisioning/datasources/datasources.yml
+
+# Restart Grafana
+docker-compose restart grafana
 ```
 
----
+### Alertes ne sont pas envoyées
 
-## Configuration Celery
-
-Tâches planifiées par défaut :
-- Scraping : toutes les 12 heures
-- Vérification des alertes : toutes les heures
-- Entraînement ML : quotidien à 02:00
-
-Commandes utiles :
 ```bash
-# Voir les workers en cours
-docker-compose exec celery_worker celery -A app.tasks.celery_app status
+# Vérifier AlertManager config
+docker-compose exec alertmanager cat /etc/alertmanager/alertmanager.yml
 
-# Voir les tâches planifiées
-docker-compose exec celery_beat celery -A app.tasks.celery_app inspect scheduled
+# Vérifier les logs
+docker-compose logs alertmanager
+
+# Tester manuellement
+curl -X POST http://localhost:9093/api/v1/alerts
 ```
 
 ---
 
-## Intégrations
+## 🎉 Prêt !
 
-### KKiapay (paiement)
-1. Créer un compte sur https://kkiapay.me
-2. Obtenir vos clés API (Public, Private, Secret)
-3. Ajouter les clés dans `.env` :
-```env
-KKIAPAY_PUBLIC_KEY=your_public_key
-KKIAPAY_PRIVATE_KEY=your_private_key
-KKIAPAY_SECRET=your_secret
-```
-
-### Telegram Bot
-1. Créer un bot via @BotFather : https://t.me/BotFather
-2. Obtenir le token
-3. Ajouter dans `.env` :
-```env
-TELEGRAM_BOT_TOKEN=123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11
-```
-
----
-
-## Déploiement
-
-### Backend (Railway / Render)
-- Connecter le repo GitHub à la plateforme
-- Configurer les variables d'environnement (MySQL, Redis, Ollama si besoin)
-- Déployer automatiquement via CI/CD
-
-### Frontend (Vercel)
-```bash
-cd frontend
-vercel
-```
-
----
-
-## To‑Do
-
-- [x] Infrastructure Docker
-- [x] Modèles de base de données
-- [x] Scrapers Jumia et Amazon
-- [x] Configuration Ollama (IA locale)
-- [ ] API Endpoints (Auth, Products, Alerts)
-- [ ] Tâches Celery (orchestration complète)
-- [ ] Prédictions ML avec Prophet (production)
-- [ ] Frontend React (UI, intégration API)
-- [ ] Intégration KKiapay
-- [ ] Tests automatisés
-
----
-
-## Contribution
-
-1. Fork le projet
-2. Créer une branche : `git checkout -b feature/AmazingFeature`
-3. Commit : `git commit -m 'Add: Feature'`
-4. Push : `git push origin feature/AmazingFeature`
-5. Ouvrir une Pull Request
-
-Merci d'ajouter des tests et une description claire pour chaque PR.
-
----
-
-## Licence
-
-MIT
-
----
-
-## Auteur
-
-Développé avec ❤️ pour le marché béninois 🇧🇯
+Le système est maintenant **production-ready** avec monitoring complet ! 🚀

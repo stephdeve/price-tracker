@@ -15,6 +15,7 @@ from app.models.alert import Alert, AlertType
 from app.models.user import User
 from app.services.scraper.jumia_scraper import JumiaScraper
 from app.services.scraper.amazon_scraper import AmazonScraper
+from app.services.scraper.aliexpress_scraper import AliExpressScraper
 
 logger = logging.getLogger(__name__)
 
@@ -54,6 +55,9 @@ def scrape_product_task(product_id: str):
                 elif product.marketplace == "amazon":
                     async with AmazonScraper() as scraper:
                         data = await scraper.scrape_product(product.url)
+                elif product.marketplace == "aliexpress":
+                    async with AliExpressScraper() as scraper:
+                        data = await scraper.scrape_product(product.marketplace_url)
                 else:
                     logger.warning(f"Unsupported marketplace: {product.marketplace}")
                     return

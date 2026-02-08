@@ -36,10 +36,16 @@ prophet==1.1.5
 scikit-learn==1.4.0
 pandas==2.2.0
 numpy==1.26.3
+sentence-transformers==2.2.2  # For semantic product matching
+python-Levenshtein==0.23.0  # For fuzzy string matching
 
 # HTTP Clients
 httpx==0.25.2  # Compatible with python-telegram-bot
 aiohttp==3.9.1
+
+# Monitoring
+prometheus-client==0.19.0  # Prometheus metrics
+prometheus-fastapi-instrumentator==6.1.0  # FastAPI metrics
 
 # Telegram Bot
 python-telegram-bot==20.7

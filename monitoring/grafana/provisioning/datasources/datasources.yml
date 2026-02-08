@@ -1,0 +1,38 @@
+apiVersion: 1
+
+datasources:
+  # Prometheus datasource
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: true
+    jsonData:
+      timeInterval: "15s"
+
+  # Loki datasource for logs
+  - name: Loki
+    type: loki
+    access: proxy
+    url: http://loki:3100
+    editable: true
+    jsonData:
+      maxLines: 1000
+
+  # MySQL datasource (optional, for direct queries)
+  - name: MySQL
+    type: mysql
+    url: mysql:3306
+    database: price_tracker
+    user: ${MYSQL_USER}
+    secureJsonData:
+      password: ${MYSQL_PASSWORD}
+    editable: true
+
+  # Redis datasource
+  - name: Redis
+    type: redis-datasource
+    access: proxy
+    url: redis:6379
+    editable: true

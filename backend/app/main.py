@@ -8,6 +8,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
 from app.core.config import settings, ALLOWED_ORIGINS
+from app.monitoring import setup_metrics  # Import metrics setup
+
 # Import all models to register them with SQLAlchemy
 from app.models import (
     User,
@@ -28,6 +30,7 @@ async def lifespan(app: FastAPI):
     print(f"🚀{settings.APP_NAME} v{settings.APP_VERSION} is starting...")
     print(f"📊 Database: {settings.DATABASE_URL.split('@')[-1]}")  # Hide credentials
     print(f"🔴 Redis: {settings.REDIS_URL}")
+    print(f"📈 Prometheus metrics enabled at /metrics")
     
     yield
     
@@ -48,6 +51,47 @@ if sys.platform.startswith("win"):
 app = FastAPI(
     title=settings.APP_NAME,
     version=settings.APP_VERSION,
+    lifespan=lifespan,
+)
+
+# Setup Prometheus metrics
+setup_metrics(app)
+
+# CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=ALLOWED_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Import and include routers
+from app.api.v1.router import api_router
+
+app.include_router(api_router, prefix="/api/v1")
+
+
+@app.get("/health")
+async def health_check():
+    """Health check endpoint"""
+    return {
+        "status": "healthy",
+        "app": settings.APP_NAME,
+        "version": settings.APP_VERSION
+    }
+
+
+@app.get("/")
+async def root():
+    """Root endpoint"""
+    return {
+        "message": f"Welcome to {settings.APP_NAME} API",
+        "version": settings.APP_VERSION,
+        "docs": "/docs",
+        "health": "/health",
+        "metrics": "/metrics"
+    }
     description="Application de suivi de prix intelligent pour le marché béninois",
     lifespan=lifespan,
 )

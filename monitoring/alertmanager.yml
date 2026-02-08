@@ -1,0 +1,65 @@
+global:
+  resolve_timeout: 5m
+
+# Configuration notifications
+route:
+  group_by: ['alertname', 'cluster', 'service']
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 12h
+  receiver: 'telegram-notifications'  # Receiver par défaut
+
+  # Routes spécifiques
+  routes:
+    # Alertes critiques → Telegram + Email
+    - match:
+        severity: critical
+      receiver: 'critical-alerts'
+      continue: true
+
+    # Alertes warning → Telegram seulement
+    - match:
+        severity: warning
+      receiver: 'telegram-notifications'
+
+receivers:
+  # Telegram notifications
+  - name: 'telegram-notifications'
+    telegram_configs:
+      - bot_token: '${TELEGRAM_BOT_TOKEN}'
+        chat_id: ${TELEGRAM_CHAT_ID}  # Ton chat ID Telegram
+        parse_mode: 'HTML'
+        message: |
+          <b>{{ .GroupLabels.alertname }}</b>
+          
+          {{ range .Alerts }}
+          Status: {{ .Status }}
+          {{ range .Labels.SortedPairs }}• {{ .Name }}: {{ .Value }}
+          {{ end }}
+          {{ range .Annotations.SortedPairs }}• {{ .Name }}: {{ .Value }}
+          {{ end }}
+          {{ end }}
+
+  # Alertes critiques (Telegram + Email)
+  - name: 'critical-alerts'
+    telegram_configs:
+      - bot_token: '${TELEGRAM_BOT_TOKEN}'
+        chat_id: ${TELEGRAM_CHAT_ID}
+        parse_mode: 'HTML'
+        message: '🚨 <b>ALERTE CRITIQUE</b> 🚨 {{ .GroupLabels.alertname }}'
+    
+    email_configs:
+      - to: '${ALERT_EMAIL}'
+        from: 'alerts@pricetracker.bj'
+        smarthost: 'smtp.gmail.com:587'
+        auth_username: '${SMTP_USERNAME}'
+        auth_password: '${SMTP_PASSWORD}'
+        headers:
+          Subject: '🚨 [PriceTracker] Alerte Critique: {{ .GroupLabels.alertname }}'
+
+inhibit_rules:
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'instance']
